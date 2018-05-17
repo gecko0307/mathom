@@ -1,0 +1,97 @@
+>Nevertheless ... there should be a 'simple file io' tutorial 
+>on the openjpeg site. A simple example on 
+>how to create and write a jp2 file or open and read it. 
+>Guys who are using the library will have done 
+>this and it shouldn't be too hard, or is it? 
+
+It is hard. 
+-------------- HOWTO READ A STILL IMAGE ----------------- 
+A J2K file has an 'image/j2k' mime type, a JP2 file has an 
+'image/jp2' mime type. 
+'codec/j2k_to_image.c' shows how to read a file containing 
+a still image. 
+The format may be: 
+FORMAT=(CODEC_J2K | CODEC_JP2 ). 
+  opj_dparameters_t parameters; 
+  opj_image_t *image; 
+  opj_dinfo_t *dinfo; 
+  unsigned char *buf; 
+  long buf_len; 
+  FILE *reader; 
+/* Your J2K data shall be in "example.j2k", so FORMAT=CODEC_J2K : 
+*/ 
+  reader = fopen("PATH/TO/example.j2k", "rb"); 
+  fseek(reader, 0, SEEK_END); 
+  buf_len = ftell(reader); 
+  fseek(reader, 0, SEEK_SET); 
+  buf = (unsigned char*) malloc(buf_len); 
+  fread(buf, 1, buf_len, reader); 
+  fclose(reader); 
+  opj_set_default_decoder_parameters(&parameters); 
+  dinfo = opj_create_decompress(FORMAT); 
+  opj_setup_decoder(dinfo, &parameters); 
+  cio = opj_cio_open((opj_common_ptr)dinfo, buf, buf_len); 
+  image = opj_decode(dinfo, cio); 
+'opj_decode()' fills image->comps[0-3].data, if the file is a valid 
+J2K/JP2 file. If it is not, then 'image' should be NULL. 
+What is in a file/image depends on the 
+typedef enum COLOR_SPACE { 
+    CLRSPC_UNKNOWN = -1,    /**< not supported by the library */ 
+    CLRSPC_UNSPECIFIED = 0, /**< not specified in the codestream */ 
+    CLRSPC_SRGB = 1,        /**< sRGB */ 
+    CLRSPC_GRAY = 2,        /**< grayscale */ 
+    CLRSPC_SYCC = 3         /**< YUV */ 
+} OPJ_COLOR_SPACE; 
+
+returned in the 'image->color_space' ( see openjpeg.h ). 
+An image may have up to four channels: 
+image->numcomps == 1 : GRAY image 
+image->numcomps == 2 : GRAY_ALPHA image 
+image->numcomps == 3 : sRGB image or sYCC image 
+image->numcomps == 4 : sRGB_ALPHA image 
+-------------- HOWTO READ A MOVIE ----------------- 
+The 'mj2' file has the 'movie/mj2' mime type. Reading an MJ2 
+file is more complicated: the movie consists of tracks. A 
+track consists of samples. The following can be found in 
+mj2/extract_j2k_from_mj2.c : the binary reads the samples 
+of a track and creates one J2K file for each sample. 
+  FILE *reader, *writer; 
+  opj_dinfo_t* dinfo; 
+  opj_mj2_t *movie; 
+  mj2_tk_t *track; 
+  mj2_sample_t *sample; 
+  unsigned char *buf; 
+  mj2_dparameters_t parameters; 
+  int tnum; 
+  unsigned int snum; 
+  char outbase[50], outfilename[50]; 
+  strcpy(outbase, "dstdir/dst_basename"); 
+  reader = fopen("PATH/TO/infilename.mj2", "rb"); 
+  dinfo = mj2_create_decompress(); 
+  movie = (opj_mj2_t*) dinfo->mj2_handle; 
+  mj2_setup_decoder(movie, &parameters); 
+  mj2_read_struct(reader, movie); 
+  tnum = 0; 
+  while (movie->tk[tnum].track_type != 0) 
+    tnum ++; 
+  track = &movie->tk[tnum]; 
+  for (snum=0; snum < track->num_samples; snum++) 
+  { 
+    sample = &track->sample[snum]; 
+    buf = (unsigned char*) malloc (sample->sample_size-8); 
+    fseek(file,sample->offset+8,SEEK_SET); 
+    sprintf(outfilename,"%s_%05d.j2k",outbase, snum); 
+    fread(buf,sample->sample_size-8,1, reader); 
+    writer = fopen(outfilename, "wb"); 
+    fwrite(buf,sample->sample_size-8,1,outfile); 
+    fclose(writer); 
+    free(buf); 
+  } 
+  fclose(reader); 
+  if(dinfo) 
+  { 
+   mj2_destroy_decompress(movie); 
+  } 
+HOWTO WRITE is too complicated for a mail. Yes, there should be 
+a tutorial. 
+winfried 

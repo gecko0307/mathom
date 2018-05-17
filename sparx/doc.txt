@@ -1,0 +1,73 @@
+Sparx library API
+--------------------------------------------------------------------------------
+Graphics functions
+--------------------------------------------------------------------------------
+Operate images in memory
+
+image_t ImageCreate(unsigned int w, unsigned int h, unsigned int channels)
+void ImageFree(image_t *img)
+void ImageSetPixelRGBA(image_t* img, int x, int y, color_t color)
+color_t ImageGetPixelRGBA(image_t* img, int x, int y)
+void ImageRenderSinePlasmaRGBA(image_t* img, float factor)
+
+Image loader
+--------------------------------------------------------------------------------
+Reads various image formats into OpenGL-friendly data structure.
+Currently supports PNG, JPEG2000 (JP2), DDS, TGA and BMP.
+Fully stand-alone, no external dependencies.
+
+int ImagePNGRead(const char *filename, image_t * img)
+int ImageJP2Read(const char *filename, image_t * img)
+int ImageDDSRead(const char *filename, image_t * img)
+int ImageTGARead(const char *filename, image_t * img)
+int ImageBMPRead(const char *filename, image_t * img)
+
+MD5 loader
+--------------------------------------------------------------------------------
+Loads and operates MD5 models. Supports animation with linear blending.
+Designed to be minimalistic and as fast as possible, with low memory footprint.
+Uses a single array set shared between all the models. 
+
+vec3_t *MD5GetVertexArray();
+vec2_t *MD5GetTexCoordArray();
+unsigned int *MD5GetIndicesArray();
+	Get pointers to raw vertex data for using within OpenGL (VA, VBO).
+void MD5ArraysAlloc();
+	Allocates memory for storing vertex data. 
+	Warning!! This should be called only once AFTER loading all the models!
+void MD5ArraysFree();
+	Free the data.
+
+int MD5ModelRead (const char *filename, md5_model_t *mdl);
+	Load an MD5 model from file.
+void MD5ModelFree (md5_model_t *mdl);
+	Free resources allocated for the model.
+void MD5MeshPrepare (const md5_mesh_t *mesh, const md5_joint_t *skeleton);
+	Prepare a mesh for drawing.  Compute mesh's final vertex positions
+	given a skeleton.  Put the vertices in the vertex array.
+void MD5MeshPrepareTransform (const md5_mesh_t *mesh, const md5_joint_t *skeleton, const md5_joint_t *bindPoseSkel);
+	Same as above, but relative to bind pose and existing values in the vertex array.
+	Useful for blending different animations.
+
+int MD5AnimRead (const char *filename, md5_anim_t *anim);
+	Load an MD5 animation from file.
+void MD5AnimFree (md5_anim_t *anim);
+	Free resources allocated for the animation.
+int MD5AnimCheckValidity (const md5_model_t *mdl, const md5_anim_t *anim);
+	Check if an animation can be used for a given model.  
+	Model's skeleton and animation's skeleton must match.
+
+void MD5SkeletonsInterpolate (const md5_joint_t *skelA, const md5_joint_t *skelB, 
+	int num_joints, float interp, md5_joint_t *out);
+	Smoothly interpolate two skeletons.
+void MD5Animate (const md5_anim_t *anim, anim_info_t *animInfo, double dt);
+	Perform animation related computations.
+	Calculate the current and next frames, given a delta time.
+	
+Bezier
+--------------------------------------------------------------------------------
+Work-in-progress Bezier spline functions.
+
+void BezierCurveCalcPoint(bezier_curve_t* curve, float t, point_t* output);
+	Calculate point position on a curve.
+
