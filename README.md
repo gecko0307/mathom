@@ -3,4 +3,5 @@ An archive of my old and unmaintained code released to Public Domain. The name o
 
 Contents:
 
+[DIOS](https://github.com/gecko0307/mathom/tree/master/dios) - minimal OS kernel example written in D
 [Sparx](https://github.com/gecko0307/mathom/tree/master/sparx) - a game-oriented utility library
