@@ -6,10 +6,10 @@ DGL is a minimalistic 3D and 2D real-time graphics engine written in D language 
 
 Screenshots
 -----------
-[![Screenshot1](/screenshots/005_thumb.jpg)](/screenshots/005.jpg)
-[![Screenshot2](/screenshots/007_thumb.jpg)](/screenshots/007.jpg)
-[![Screenshot2](/screenshots/009_thumb.jpg)](/screenshots/009.jpg)
-[![Screenshot2](/screenshots/010_thumb.jpg)](/screenshots/010.jpg)
+[![Screenshot1](/dgl/screenshots/005_thumb.jpg)](/screenshots/005.jpg)
+[![Screenshot2](/dgl/screenshots/007_thumb.jpg)](/screenshots/007.jpg)
+[![Screenshot2](/dgl/screenshots/009_thumb.jpg)](/screenshots/009.jpg)
+[![Screenshot2](/dgl/screenshots/010_thumb.jpg)](/screenshots/010.jpg)
 
 To see what DGL is capable to, check out [Atrium](https://github.com/gecko0307/atrium), a work-in-progress sci-fi first person puzzle based on physics simulation.
 
@@ -56,11 +56,11 @@ DGL comes with a number of usage examples. To build one, run `dub build --config
 Documentation
 -------------
 Warning: documentation can be outdated!
-* [Introduction to DGL](/tutorials/001-intro.md)
-* [Basic 3D Graphics](/tutorials/002-3d-graphics.md)
-* [Model Loading](/tutorials/003-model-loading.md)
-* [Extending DGL](/tutorials/004-extending-dgl.md)
-* [Event System](/tutorials/005-event-system.md)
+* [Introduction to DGL](/dgl/tutorials/001-intro.md)
+* [Basic 3D Graphics](/dgl/tutorials/002-3d-graphics.md)
+* [Model Loading](/dgl/tutorials/003-model-loading.md)
+* [Extending DGL](/dgl/tutorials/004-extending-dgl.md)
+* [Event System](/dgl/tutorials/005-event-system.md)
 
 License
 -------
