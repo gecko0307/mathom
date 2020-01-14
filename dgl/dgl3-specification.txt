@@ -1,0 +1,166 @@
+DGL3 format specification
+-------------------------
+File begins with magic string:
+"DGL3" (4 bytes)
+
+File header:
+
+int formatVersionNumber - currently should be 300.
+int nameSize
+int creatorNameSize
+int dataSize
+ubyte[nameSize] name - UTF-8 name, arbitrary
+ubyte[creatorNameSize] creatorName - UTF-8 creator name, arbitrary
+ubyte[dataSize] data - arbitrary data
+
+Scene header:
+
+int numMeshes
+int numEntities
+int numLights
+
+Meshes:
+
+[numMeshes]{
+  int meshId >= 0 - mesh identifier, unique in this file
+  int nameSize > 0
+  ubyte[nameSize] name - UTF-8 name, unique in this file
+  int isExternal - if 1, then actual mesh data should be read from an external DGL3 file (0 otherwize). 
+  This file should contain only one mesh (and, probably, materials that this mesh uses). The name of this file is determined by externalFilename.
+  If such file does not exist or invalid, decoder should fail with an error.
+  if (isExternal){
+    int externalFilenameSize
+    ubyte[externalFilenameSize] externalFilename - UTF-8 filename relative to the current file
+  }
+  else{
+    int numVertices
+    vec3[numVertices] vertices
+    vec3[numVertices] normals
+    vec2[numVertices] texcoords
+    int haveLightmapTexCoords
+    if (haveLightmapTexCoords){
+      vec2[numVertices] lightmapTexCoords
+    }
+    int numTriangles
+    [numTriangles]{
+      int[3] triangleVertexIndices
+    }
+
+    int hasSkeletalAnimation
+    if (hasSkeletalAnimation){
+      int numBones
+      [numBones]{
+        int parentBoneIndex (-1 is no parent)
+        vec3 localPosition
+      }
+      int boneWeightsPerVertex
+      [numVertices]{
+        int[boneWeightsPerVertex] boneIndices
+        float[boneWeightsPerVertex] boneWeights
+      }
+      int framesPerSecond
+      int numAnimations
+      [numAnimations]{
+        int animationNameSize
+        ubyte[animationNameSize] animationName - UTF-8 animation name, unique in this list
+        int numFrames
+        [numFrames]{
+          int numTransformations
+          [numTransformations]{
+            int boneIndex
+            quat localRotation
+            vec3 localTranslation
+            vec3 localScaling
+          }
+        }
+      }
+    }
+
+    int hasMorphTargetAnimation
+    if (hasMorphTargetAnimation){
+      int framesPerSecond
+      int numAnimations
+      [numAnimations]{
+        int animationNameSize
+        ubyte[animationNameSize] animationName - UTF-8 animation name, unique in this list
+        int numFrames
+        [numFrames]{
+          vec3[numVertices] vertices
+          vec3[numVertices] normals
+        }
+      }
+    }
+  }
+}
+
+Entities:
+
+[numEntities]{
+  int entityId >= 0 - entity identifier, unique in this file
+  int nameSize > 0
+  ubyte[nameSize] name - UTF-8 name, unique in this file
+  int isExternal - if 1, then this entity is a placeholder for a scene that is loaded from an external DGL3 file (0 otherwize). 
+  The name of this file is determined by externalFilename.
+  If such file does not exist or invalid, decoder should fail with an error.
+  if (isExternal){
+    int externalFilenameSize
+    ubyte[externalFilenameSize] externalFilename - UTF-8 filename relative to the current file
+  }
+  int meshId (-1 - no mesh, empty object)
+  vec3 position
+  vec3 scale
+  quat rotation
+  int numCustomProperties
+  [numCustomProperties]{
+    int nameSize > 0
+    ubyte[nameSize] name
+    int propertyType - 0 is int, 1 is float, 2 is vec2, 3 is vec3, 4 is vec4/quat, 5 is string
+    if (propertyType == 0){
+      int value
+    }
+    if (propertyType == 1){
+      float value
+    }
+    if (propertyType == 2){
+      vec2 value
+    }
+    if (propertyType == 3){
+      vec3 value
+    }
+    if (propertyType == 4){
+      vec4 value
+    }
+    if (propertyType == 5){
+      int valueSize
+      ubyte[valueSize] value
+    }
+  }  
+}
+
+Lights:
+
+[numLights]{
+  int lightId >= 0 - light identifier, unique in this file
+  int nameSize > 0
+  ubyte[nameSize] name - UTF-8 name, unique in this file
+  int type - 0 = point light, 1 = directional light
+  vec3 position
+  quat rotation
+  vec4 color
+}
+
+Material file specification
+---------------------------
+Material file has a human-readable format and consists of a simple name-value pairs:
+
+name: "materialName"
+ambientColor: [0.1, 0.0, 0.0, 1.0]
+diffuseColor: [1.0, 0.0, 0.0, 1.0]
+specularColor: [1.0, 1.0, 1.0, 1.0]
+roughness: 0.1
+specularity: 0.9
+diffuseTexture: "diffuse.png"
+normalTexture: "normal.png"
+emissionTexture: "emit.png"
+
+

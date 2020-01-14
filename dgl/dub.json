@@ -1,0 +1,48 @@
+{
+    "description": "dgl demo",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "license": "Boost",
+    "homepage": "http://github.com/gecko0307/dgl",
+    "name": "demo",
+    "importPaths": [
+        "."
+    ],
+    "dependencies": {
+        "dlib": "0.9.1"
+    },
+    "buildRequirements":[
+        "allowWarnings"
+    ],
+    "libs-posix": ["dl"],
+    "configurations": [
+        {
+            "name": "minimal",
+            "targetName": "minimal",
+            "targetType": "executable",
+            "sourcePaths": ["."],
+            "mainSourceFile": "minimal.d",
+            "excludedSourceFiles": ["pbr.d", "textio.d"],
+            "buildOptions": ["noBoundsCheck", "optimize"]
+        },
+        {
+            "name": "pbr",
+            "targetName": "pbr",
+            "targetType": "executable",
+            "sourcePaths": ["."],
+            "mainSourceFile": "pbr.d",
+            "excludedSourceFiles": ["minimal.d", "textio.d"],
+            "buildOptions": ["noBoundsCheck", "optimize"]
+        },
+        {
+            "name": "textio",
+            "targetName": "textio",
+            "targetType": "executable",
+            "sourcePaths": ["."],
+            "mainSourceFile": "textio.d",
+            "excludedSourceFiles": ["minimal.d", "pbr.d"],
+            "buildOptions": ["noBoundsCheck", "optimize"]
+        }
+    ]
+}

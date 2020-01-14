@@ -1,0 +1,12 @@
+name: "stonewall";
+ambientColor: [0.2, 0.2, 0.2, 1.0];
+diffuseColor: [0.7, 0.6, 0.5, 1.0];
+specularColor: [0.9, 0.9, 0.9, 1.0];
+emissionColor: [0.0, 0.0, 0.0, 1.0];
+roughness: 0.1;
+specularity: 0.9;
+metallic: 0.1;
+diffuseTexture: "planks.png";
+normalTexture: "planks-normal.png";
+
+

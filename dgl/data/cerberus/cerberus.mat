@@ -1,0 +1,11 @@
+name: "cerberus";
+ambientColor: [0.1, 0.1, 0.1, 1.0];
+diffuseColor: [0.7, 0.7, 0.7, 1.0];
+specularColor: [1.0, 1.0, 1.0, 1.0];
+emissionColor: [0.0, 0.0, 0.0, 1.0];
+diffuseTexture: "cerberus-albedo.png";
+normalTexture: "cerberus-normal.png";
+roughnessTexture: "cerberus-roughness.png";
+metallicTexture: "cerberus-metallic.png";
+
+

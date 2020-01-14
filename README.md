@@ -3,6 +3,8 @@ An archive of my old and unmaintained code. The name of this repository is a ref
 
 Contents:
 
+[DGL](https://github.com/gecko0307/mathom/tree/master/dgl) - 3D game engine
+
 [DIOS](https://github.com/gecko0307/mathom/tree/master/dios) - minimal OS kernel example written in D
 
 [GScript](https://github.com/gecko0307/mathom/tree/master/gscript) - simple scripting language
