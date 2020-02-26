@@ -7,7 +7,7 @@ Contents:
 
 [DIOS](https://github.com/gecko0307/mathom/tree/master/dios) - minimal OS kernel example written in D
 
-[Gefest](https://github.com/gecko0307/mathom/tree/master/gefest) - simple scripting language
+[Gefest](https://github.com/gecko0307/mathom/tree/master/gefest) - unfinished Vulkan framework in D
 
 [GScript](https://github.com/gecko0307/mathom/tree/master/gscript) - simple scripting language
 
