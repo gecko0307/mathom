@@ -1,0 +1,7 @@
+
+*.exe
+*.pdb
+*.obj
+.dub/dub.json
+.dub/version.json
+dub.selections.json

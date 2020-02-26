@@ -7,6 +7,8 @@ Contents:
 
 [DIOS](https://github.com/gecko0307/mathom/tree/master/dios) - minimal OS kernel example written in D
 
+[Gefest](https://github.com/gecko0307/mathom/tree/master/gefest) - simple scripting language
+
 [GScript](https://github.com/gecko0307/mathom/tree/master/gscript) - simple scripting language
 
 [Sparx](https://github.com/gecko0307/mathom/tree/master/sparx) - a game-oriented utility library
