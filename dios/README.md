@@ -15,5 +15,5 @@ Prerequisites:
 * [NASM](http://www.nasm.us)
 * mkisofs to generate Live CD
 
-1. Run `./build.bat` or `./build.so`
-2. You're done! Newly generated CD image is `dios.iso`.
+1. Run `./build.bat`
+2. You're done! Newly generated CD image is `dios.iso`. If you have QEMU installed, you can run it with `run.bat`.
