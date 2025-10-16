@@ -11,46 +11,142 @@ import core.stdarg;
 import core.keyboard;
 import core.vbe;
 import logo;
+import cursor;
 
 extern(C):
 
 __gshared string MemAvailable = "Available";
 __gshared string MemReserved = "Reserved";
 
+struct Framebuffer
+{
+    uint* ptr;
+    uint width;
+    uint height;
+    uint pitch;
+    uint bytesPerPixel;
+}
+
 void fillScreen(
-    vbe_info* vbe,
+    Framebuffer* fb,
     uint color) @nogc nothrow
 {
-    uint* fb = cast(uint*)vbe.framebuffer;
-    auto bpp = vbe.bpp / 8;
-    for (uint y = 0; y < vbe.height; y++)
+    for (uint y = 0; y < fb.height; y++)
     {
-        for (uint x = 0; x < vbe.width; x++)
+        for (uint x = 0; x < fb.width; x++)
         {
-            uint offset = y * (vbe.pitch / bpp) + x;
-            fb[offset] = color;
+            uint offset = y * (fb.pitch / fb.bytesPerPixel) + x;
+            fb.ptr[offset] = color;
         }
     }
 }
 
 void drawBitmap(
-    vbe_info* vbe,
+    Framebuffer* fb,
     uint x0, uint y0,
     const uint[] bitmap,
     ushort w, ushort h) @nogc nothrow
 {
-    uint* fb = cast(uint*)vbe.framebuffer;
-    auto bpp = vbe.bpp / 8;
     for (uint y = 0; y < h; y++)
     {
-        if (y0 + y >= vbe.height)
+        if (y0 + y >= fb.height)
             break;
         for (uint x = 0; x < w; x++)
         {
-            if (x0 + x >= vbe.width)
+            if (x0 + x >= fb.width)
                 break;
-            uint offset = (y0 + y) * (vbe.pitch / bpp) + (x0 + x);
-            fb[offset] = bitmap[y * w + x];
+            uint offset = (y0 + y) * (fb.pitch / fb.bytesPerPixel) + (x0 + x);
+            uint pix = bitmap[y * w + x];
+            if (pix != 0x00FF00FF)
+                fb.ptr[offset] = bitmap[y * w + x];
+        }
+    }
+}
+
+struct MouseState
+{
+    int x;
+    int y;
+    ubyte buttons;  // 0x1=left, 0x2=right, 0x4=middle
+}
+
+__gshared MouseState mouseState;
+__gshared ubyte[3] packet;
+__gshared ubyte packetIndex = 0;
+
+enum: ubyte
+{
+    PS2_DATA_PORT  = 0x60,
+    PS2_STATUS_PORT = 0x64,
+    PS2_CMD_MOUSE = 0xD4,
+    PS2_ENABLE_MOUSE = 0xF4
+};
+
+void mouse_handle_byte(uint val) @nogc nothrow
+{
+    packet[packetIndex] = cast(ubyte)val;
+    packetIndex++;
+
+    if (packetIndex == 3)
+    {
+        ubyte b0 = packet[0];
+        ubyte b1 = packet[1];
+        ubyte b2 = packet[2];
+
+        int dx = cast(int)b1;
+        int dy = cast(int)b2;
+
+        if (b0 & 0x10) dx -= 256; // X sign
+        if (b0 & 0x20) dy -= 256; // Y sign
+
+        mouseState.x += dx;
+        mouseState.y -= dy;
+
+        if (mouseState.x < 0) mouseState.x = 0;
+        if (mouseState.x > 639) mouseState.x = 639;
+        if (mouseState.y < 0) mouseState.y = 0;
+        if (mouseState.y > 479) mouseState.y = 479;
+
+        mouseState.buttons = b0 & 0x07; 
+
+        packetIndex = 0;
+    }
+}
+
+void pollMouse() @nogc nothrow
+{
+    if (kPortReadByte(PS2_STATUS_PORT) & 0x01)
+    {
+        ubyte val = kPortReadByte(PS2_DATA_PORT);
+        if (packetIndex == 0) {
+            if ((val & 0x08) == 0) return;
+        }
+        
+        packet[packetIndex] = val;
+        packetIndex++;
+        if (packetIndex == 3)
+        {
+            ubyte b0 = packet[0];
+            ubyte b1 = packet[1];
+            ubyte b2 = packet[2];
+
+            int dx = cast(int) b1;
+            int dy = cast(int) b2;
+
+            if (b0 & 0x10) dx -= 256; // X sign
+            if (b0 & 0x20) dy -= 256; // Y sign
+
+            mouseState.x += dx;
+            mouseState.y -= dy;
+
+            if (mouseState.x < 0) mouseState.x = 0;
+            if (mouseState.x > 639) mouseState.x = 639;
+            if (mouseState.y < 0) mouseState.y = 0;
+            if (mouseState.y > 479) mouseState.y = 479;
+
+            mouseState.buttons = b0 & 0x07; 
+
+            packetIndex = 0;
         }
     }
 }
@@ -146,24 +242,55 @@ void kmain(uint magic, uint addr) @nogc nothrow
         while(1)
         {}
     }
-
-    uint fb = vbe.framebuffer;
-    ushort pitch = vbe.pitch;
-    ushort width = vbe.width;
-    ushort height = vbe.height;
-    ubyte bpp = vbe.bpp;
-
-    kprintf(" VBE framebuffer: %x\n", fb);
-    kprintf(" Resolution: %ux%u, pitch=%u, bpp=%u\n", width, height, pitch, bpp);
     
-    fillScreen(vbe, 0x000000AA);
-    drawBitmap(vbe, 16, 16, DIOS_LOGO, DIOS_LOGO_WIDTH, DIOS_LOGO_HEIGHT);
+    uint backBufferAddr = upperMemAdr + 1024 * 1024; // leave 1 Mb
+    
+    Framebuffer frontBuffer;
+    frontBuffer.ptr = cast(uint*)vbe.framebuffer;
+    frontBuffer.width = vbe.width;
+    frontBuffer.height = vbe.height;
+    frontBuffer.pitch = vbe.pitch;
+    frontBuffer.bytesPerPixel = vbe.bpp / 8;
+    
+    Framebuffer backBuffer;
+    backBuffer.ptr = cast(uint*)backBufferAddr;
+    backBuffer.width = vbe.width;
+    backBuffer.height = vbe.height;
+    backBuffer.pitch = vbe.pitch;
+    backBuffer.bytesPerPixel = vbe.bpp / 8;
+    
+    uint numPixels = vbe.height * vbe.width;
+    uint framebufferSize = vbe.height * vbe.pitch;
+    
+    fillScreen(&frontBuffer, 0x000000AA);
     
     kKbdEnable();
     kKbdFlushBuffer();
     
+    packetIndex = 0;
+    mouseState.x = 0;
+    mouseState.y = 0;
+    mouseState.buttons = 0;
+    while (kPortReadByte(PS2_STATUS_PORT) & 0x02) {}
+    kPortWriteByte(PS2_STATUS_PORT, PS2_CMD_MOUSE);
+    while (kPortReadByte(PS2_STATUS_PORT) & 0x02) {}
+    kPortWriteByte(PS2_DATA_PORT, PS2_ENABLE_MOUSE);
+    
     while(1)
     {
+        for (int i = 0; i < 3; i++)
+            pollMouse();
+        
+        fillScreen(&backBuffer, 0x000000AA);
+        drawBitmap(&backBuffer, 16, 16, DIOS_LOGO, DIOS_LOGO_WIDTH, DIOS_LOGO_HEIGHT);
+        drawBitmap(&backBuffer, mouseState.x, mouseState.y, CURSOR, CURSOR_WIDTH, CURSOR_HEIGHT);
+        
+        for (uint i = 0; i < numPixels; i++)
+        {
+            frontBuffer.ptr[i] = backBuffer.ptr[i];
+        }
+        
+        /*
         while ((kPortReadByte(0x64) & 1) == 0)
         { }
         ubyte code = kPortReadByte(0x60);
@@ -179,6 +306,7 @@ void kmain(uint magic, uint addr) @nogc nothrow
                 VGAText.putChar(c);
             }
         }
+        */
     }
 }
 
