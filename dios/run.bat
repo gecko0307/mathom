@@ -1,1 +1,1 @@
-qemu-system-i386 -cdrom dios.iso -boot d
+qemu-system-i386 -cdrom dios.iso -boot d -vga std

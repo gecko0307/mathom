@@ -9,11 +9,51 @@ import core.vga;
 import core.console;
 import core.stdarg;
 import core.keyboard;
+import core.vbe;
+import logo;
 
 extern(C):
 
 __gshared string MemAvailable = "Available";
 __gshared string MemReserved = "Reserved";
+
+void fillScreen(
+    vbe_mode_info_block* vbe,
+    uint color) @nogc nothrow
+{
+    uint* fb = cast(uint*)vbe.framebuffer;
+    auto bpp = vbe.bpp / 8;
+    for (uint y = 0; y < vbe.height; y++)
+    {
+        for (uint x = 0; x < vbe.width; x++)
+        {
+            uint offset = y * (vbe.pitch / bpp) + x;
+            fb[offset] = color;
+        }
+    }
+}
+
+void drawBitmap(
+    vbe_mode_info_block* vbe,
+    uint x0, uint y0,
+    const uint[] bitmap,
+    ushort w, ushort h) @nogc nothrow
+{
+    uint* fb = cast(uint*)vbe.framebuffer;
+    auto bpp = vbe.bpp / 8;
+    for (uint y = 0; y < h; y++)
+    {
+        if (y0 + y >= vbe.height)
+            break;
+        for (uint x = 0; x < w; x++)
+        {
+            if (x0 + x >= vbe.width)
+                break;
+            uint offset = (y0 + y) * (vbe.pitch / bpp) + (x0 + x);
+            fb[offset] = bitmap[y * w + x];
+        }
+    }
+}
 
 void kmain(uint magic, uint addr) @nogc nothrow
 {
@@ -21,10 +61,8 @@ void kmain(uint magic, uint addr) @nogc nothrow
     Console.init();
     
     byte status = kPortReadByte(0x64);
-    kprintf("Port 0x64 status = %02x\n", status);
-
     if (status == 0x02) {
-        kprintf("Problem with GDT/CS!\n");
+        kPanic("Problem with GDT/CS!");
     }
 
     kprintf("DIOS 0.0.2\n");
@@ -96,9 +134,30 @@ void kmain(uint magic, uint addr) @nogc nothrow
     else
         kprintf(" length: %u B\n", upperMemLen);
 
-    //core.memory.Initialize();
-    //kprintf("kernelstart = %x\n", kernelstart);
-    //kprintf("kernelend = %x\n", kernelend);
+    vbe_mode_info_block* vbe;
+    kprintf("Video:\n");
+    if ((mbi.flags & MULTIBOOT_INFO_VIDEO_INFO) != 0)
+    {
+        kprintf(" vbe_mode_info: %x\n", mbi.vbe_mode_info);
+        kprintf(" vbe_mode: %u\n", mbi.vbe_mode);
+        vbe = cast(vbe_mode_info_block*)mbi.vbe_mode_info;
+    } else {
+        kprintf(" No framebuffer info!\n");
+        while(1)
+        {}
+    }
+
+    uint fb = vbe.framebuffer;
+    ushort pitch = vbe.pitch;
+    ushort width = vbe.width;
+    ushort height = vbe.height;
+    ubyte bpp = vbe.bpp;
+
+    kprintf(" VBE framebuffer: %x\n", fb);
+    kprintf(" Resolution: %ux%u, pitch=%u, bpp=%u\n", width, height, pitch, bpp);
+    
+    fillScreen(vbe, 0x000000AA);
+    drawBitmap(vbe, 16, 16, DIOS_LOGO, DIOS_LOGO_WIDTH, DIOS_LOGO_HEIGHT);
     
     kKbdEnable();
     kKbdFlushBuffer();
@@ -116,7 +175,9 @@ void kmain(uint magic, uint addr) @nogc nothrow
         {
             char c = scancodeToChar(code);
             if (c)
+            {
                 VGAText.putChar(c);
+            }
         }
     }
 }

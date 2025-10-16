@@ -1,12 +1,15 @@
 global start
-extern kmain        ; Allow kmain() to be called from the assembly code
+extern kmain
 extern start_ctors, end_ctors, start_dtors, end_dtors
 
-MODULEALIGN        equ        1<<0
-MEMINFO            equ        1<<1
-FLAGS              equ        MODULEALIGN | MEMINFO
-MAGIC              equ        0x1BADB002
-CHECKSUM           equ        -(MAGIC + FLAGS)
+MULTIBOOT_PAGE_ALIGN  equ 0x00000001
+MULTIBOOT_MEMORY_INFO equ 0x00000002
+MULTIBOOT_VIDEO_MODE  equ 0x00000004
+MULTIBOOT_AOUT_KLUDGE equ 0x00010000
+
+FLAGS    equ MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_VIDEO_MODE
+MAGIC    equ 0x1BADB002
+CHECKSUM equ -(MAGIC + FLAGS)
 
 section .text      ; Next is the Grub Multiboot Header
 
@@ -17,6 +20,15 @@ MultiBootHeader:
     dd MAGIC
     dd FLAGS
     dd CHECKSUM
+    dd 0               ; header_addr
+    dd 0               ; load_addr
+    dd 0               ; load_end_addr;
+    dd 0               ; bss_end_addr;
+    dd 0               ; entry_addr;
+    dd 0               ; mode_type (0=graphics, 1=text)
+    dd 1024            ; width
+    dd 768             ; height
+    dd 32              ; depth
 
 ; reserve initial kernel stack space
 STACKSIZE equ 0x4000  ; 16k
