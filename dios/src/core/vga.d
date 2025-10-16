@@ -1,12 +1,12 @@
-module core.video;
+module core.vga;
 
-import core.consoletypes;
 import core.port;
+import core.console;
 
-extern(C) __gshared:
+extern(C):
 
 // This is the true interface to the console
-struct VGAText
+__gshared struct VGAText
 {
     static public __gshared:
 
@@ -30,7 +30,7 @@ struct VGAText
     const auto TABSTOP = 4;
 
     // This method will clear the screen and return the cursor to (0,0).
-    void clearScreen()
+    void clearScreen() @nogc nothrow
     {
         int i;
 
@@ -44,14 +44,14 @@ struct VGAText
     }
 
     // This method will return the current location of the cursor
-    void getPosition(out int x, out int y)
+    void getPosition(out int x, out int y) @nogc nothrow
     {
         x = xpos;
         y = ypos;
     }
 
     // This method will set the current location of the cursor to the x and y given.
-    void setPosition(int x, int y)
+    void setPosition(int x, int y) @nogc nothrow
     {
         if (x < 0) { x = 0; }
         if (y < 0) { y = 0; }
@@ -62,20 +62,20 @@ struct VGAText
         ypos = y;
     }
 
-    void updateCursor(int row, int col)
+    void updateCursor(int row, int col) @nogc nothrow
     {
-        ushort position=cast(ushort)((row*80) + col);
+        ushort position = cast(ushort)((row * COLUMNS) + col);
  
         // cursor LOW port to vga INDEX register
         kPortWriteByte(0x3D4, 0x0F);
-        kPortWriteByte(0x3D5, cast(ubyte)(position&0xFF));
+        kPortWriteByte(0x3D5, cast(ubyte)(position & 0xFF));
         // cursor HIGH port to vga INDEX register
         kPortWriteByte(0x3D4, 0x0E);
-        kPortWriteByte(0x3D5, cast(ubyte)((position>>8)&0xFF));
+        kPortWriteByte(0x3D5, cast(ubyte)((position >> 8) & 0xFF));
     }
-
+    
     // This method will post the character to the screen at the current location.
-    void putChar(char c)
+    void putChar(char c) @nogc nothrow
     {
         if (c == '\t')
         {
@@ -104,44 +104,55 @@ struct VGAText
             }
         }
 
-        updateCursor(ypos, xpos+1);
+        updateCursor(ypos, xpos);
     }
 
     // This mehtod will post a string to the screen at the current location.
-    void putString(string s)
+    void putString(string s) @nogc nothrow
     {
         foreach(c; s)
         {
             putChar(c);
         }
     }
+    
+    void back() @nogc nothrow
+    {
+        if (xpos > 0)
+        {
+            xpos -= 1;
+            *(videoMemoryLocation + (xpos + ypos * COLUMNS) * 2) = 0x00;
+            *(videoMemoryLocation + (xpos + ypos * COLUMNS) * 2 + 1) = colorAttribute;
+            updateCursor(ypos, xpos);
+        }
+    }
 
     // This function sets the console colors back to their defaults.
-    void resetColors()
+    void resetColors() @nogc nothrow
     {
         colorAttribute = DEFAULTCOLORS;
     }
 
     // This function will set the text foreground to a new color.
-    void setForeColor(ConsoleColor newColor)
+    void setForeColor(ConsoleColor newColor) @nogc nothrow
     {
         colorAttribute = cast(ubyte)((colorAttribute & 0xf0) | newColor);
     }
 
     // This function will set the text background to a new color.
-    void setBackColor(ConsoleColor newColor)
+    void setBackColor(ConsoleColor newColor) @nogc nothrow
     {
         colorAttribute = cast(ubyte)((colorAttribute & 0x0f) | (newColor << 4));
     }
 
     // This function will set both the foreground and background colors.
-    void setColors(ConsoleColor foreColor, ConsoleColor backColor)
+    void setColors(ConsoleColor foreColor, ConsoleColor backColor) @nogc nothrow
     {
         colorAttribute = cast(ubyte)((foreColor & 0x0f) | (backColor << 4));
     }
 
     // This function will scroll the entire screen.
-    void scrollDisplay(uint numLines)
+    void scrollDisplay(uint numLines) @nogc nothrow
     {
         // obviously, scrolling all lines results in a cleared display. Use the faster function.
         if (numLines >= LINES)
@@ -184,4 +195,3 @@ struct VGAText
         }
     }
 }
-

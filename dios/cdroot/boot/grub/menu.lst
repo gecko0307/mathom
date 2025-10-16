@@ -6,4 +6,4 @@
 # timeout 30
 
 title   "Boot kernel.bin"
-        kernel /kernel.bin hello
+        kernel /kernel.bin

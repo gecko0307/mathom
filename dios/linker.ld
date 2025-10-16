@@ -1,10 +1,14 @@
 OUTPUT_FORMAT(elf32-i386)
 ENTRY (start)
 
-SECTIONS{
+SECTIONS {
     . = 0x00100000;
+    
+    .multiboot ALIGN(4) : {
+        KEEP(*(.multiboot))
+    }
 
-    .text :{
+    .text : {
         code = .; _code = .; __code = .;
         *(.text)
         *(.rodata)

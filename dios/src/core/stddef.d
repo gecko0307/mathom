@@ -1,6 +1,6 @@
 module core.stddef;
 
-extern(C):
+extern(C) @nogc nothrow:
 
 alias typeof(cast(void*)0 - cast(void*)0) ptrdiff_t;
 

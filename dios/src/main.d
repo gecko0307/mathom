@@ -1,68 +1,44 @@
 module main;
 
-import core.dsymbols;
-
 import core.stdio;
 import core.error;
-
 import core.multiboot;
-import core.video;
+import core.port;
+import core.gdt;
+import core.vga;
 import core.console;
 import core.stdarg;
-import core.port;
+import core.keyboard;
 
 extern(C):
 
-multiboot_info* getMultibootInfo(uint addr, uint magic)
+__gshared string MemAvailable = "Available";
+__gshared string MemReserved = "Reserved";
+
+void kmain(uint magic, uint addr) @nogc nothrow
 {
+    initGDT();
+    Console.init();
+    
+    byte status = kPortReadByte(0x64);
+    kprintf("Port 0x64 status = %02x\n", status);
+
+    if (status == 0x02) {
+        kprintf("Problem with GDT/CS!\n");
+    }
+
+    kprintf("DIOS 0.0.2\n");
+    kprintf("---------------\n");
+    kprintf("Multiboot magic: %x\n", magic);
+    
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
     {
         kPanic("Invalid Multiboot magic number");
     }
 
     multiboot_info* mbi = cast(multiboot_info*)addr;
-
-    return mbi;
-}
-
-__gshared string MemAvailable = "Available";
-__gshared string MemReserved = "Reserved";
-
-void switchDisplayMode40x25()
-{
-    asm
-    {
-        mov AH, 0;
-        int 0x10;
-    }
-}
-
-void restartKeyboard()
-{    
-   ubyte data;
-   kPortReadByte(0x61, data);     
-   kPortWriteByte(0x61, data | 0x80); //Disables the keyboard  
-   kPortWriteByte(0x61, data & 0x7F); //Enables the keyboard  
-}
-
-ubyte getScancode()
-{
-    ubyte data;
-    kPortReadByte(0x60, data);
-    return data;
-}
-
-void main(uint addr, uint magic) 
-{
-    Console.init();
-    //multiboot_info* mbi = checkMultiboot(addr, magic);
-
-    kprintf("DIOS 0.0.1\n");
-    kprintf("---------------\n");
-
-    multiboot_info* mbi = getMultibootInfo(addr, magic);
+    
     kprintf("Multiboot info:\n");
-    kprintf("Magic: %x\n", magic);
 
     if (checkFlag(mbi.flags, 2))
         kprintf("Arguments: %s\n", cast(char*)mbi.cmdline);
@@ -123,11 +99,25 @@ void main(uint addr, uint magic)
     //core.memory.Initialize();
     //kprintf("kernelstart = %x\n", kernelstart);
     //kprintf("kernelend = %x\n", kernelend);
-
-    //restartKeyboard();
-
-    for (;;) 
+    
+    kKbdEnable();
+    kKbdFlushBuffer();
+    
+    while(1)
     {
+        while ((kPortReadByte(0x64) & 1) == 0)
+        { }
+        ubyte code = kPortReadByte(0x60);
+        if (code == 0x0e)
+        {
+            VGAText.back();
+        }
+        else
+        {
+            char c = scancodeToChar(code);
+            if (c)
+                VGAText.putChar(c);
+        }
     }
 }
 
