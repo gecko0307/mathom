@@ -8,7 +8,7 @@ DIOS is an ELF kernel that requires a bootloader to run. Default setup in this r
 
 Features
 --------
-Nothing fancy for now: the kernel just boots up, gets Multiboot info from GRUB and draws a logo on the screen in 1024x768 VESA graphics mode.
+Nothing fancy for now: the kernel just boots up, gets Multiboot info from GRUB and draws a logo on the screen in 640x480 VESA graphics mode.
 
 Building
 --------

@@ -18,7 +18,7 @@ __gshared string MemAvailable = "Available";
 __gshared string MemReserved = "Reserved";
 
 void fillScreen(
-    vbe_mode_info_block* vbe,
+    vbe_info* vbe,
     uint color) @nogc nothrow
 {
     uint* fb = cast(uint*)vbe.framebuffer;
@@ -34,7 +34,7 @@ void fillScreen(
 }
 
 void drawBitmap(
-    vbe_mode_info_block* vbe,
+    vbe_info* vbe,
     uint x0, uint y0,
     const uint[] bitmap,
     ushort w, ushort h) @nogc nothrow
@@ -134,13 +134,13 @@ void kmain(uint magic, uint addr) @nogc nothrow
     else
         kprintf(" length: %u B\n", upperMemLen);
 
-    vbe_mode_info_block* vbe;
+    vbe_info* vbe;
     kprintf("Video:\n");
     if ((mbi.flags & MULTIBOOT_INFO_VIDEO_INFO) != 0)
     {
         kprintf(" vbe_mode_info: %x\n", mbi.vbe_mode_info);
         kprintf(" vbe_mode: %u\n", mbi.vbe_mode);
-        vbe = cast(vbe_mode_info_block*)mbi.vbe_mode_info;
+        vbe = cast(vbe_info*)mbi.vbe_mode_info;
     } else {
         kprintf(" No framebuffer info!\n");
         while(1)

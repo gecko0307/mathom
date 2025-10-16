@@ -26,8 +26,8 @@ MultiBootHeader:
     dd 0               ; bss_end_addr;
     dd 0               ; entry_addr;
     dd 0               ; mode_type (0=graphics, 1=text)
-    dd 1024            ; width
-    dd 768             ; height
+    dd 640             ; width
+    dd 480             ; height
     dd 32              ; depth
 
 ; reserve initial kernel stack space
