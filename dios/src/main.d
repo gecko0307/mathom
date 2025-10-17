@@ -127,28 +127,46 @@ void pollMouse() @nogc nothrow
         if (packetIndex == 3)
         {
             ubyte b0 = packet[0];
-            ubyte b1 = packet[1];
-            ubyte b2 = packet[2];
-
-            int dx = cast(int) b1;
-            int dy = cast(int) b2;
-
-            if (b0 & 0x10) dx -= 256; // X sign
-            if (b0 & 0x20) dy -= 256; // Y sign
-
+            byte dx = packet[1];
+            byte dy = packet[2];
+            
             mouseState.x += dx;
             mouseState.y -= dy;
-
+            
             if (mouseState.x < 0) mouseState.x = 0;
             if (mouseState.x > 639) mouseState.x = 639;
             if (mouseState.y < 0) mouseState.y = 0;
             if (mouseState.y > 479) mouseState.y = 479;
-
-            mouseState.buttons = b0 & 0x07; 
-
+            
+            mouseState.buttons = b0 & 0x07;
+            
             packetIndex = 0;
         }
     }
+}
+
+enum PIT_CHANNEL0 = 0x40;
+enum PIT_COMMAND = 0x43;
+enum  PIT_FREQUENCY = 1193182; // In Hz
+
+ushort pitRead() @nogc nothrow
+{
+    kPortWriteByte(PIT_COMMAND, 0x00);
+    ubyte pitLow  = kPortReadByte(PIT_CHANNEL0);
+    ubyte pitHigh = kPortReadByte(PIT_CHANNEL0);
+    return (pitHigh << 8) | pitLow;
+}
+
+__gshared uint t_high = 0;
+__gshared ushort t_prev = 0xFFFF;
+
+uint pitTimeTicks() @nogc nothrow
+{
+    ushort t_curr = pitRead();
+    if (t_curr > t_prev)
+        t_high += 0x10000;
+    t_prev = t_curr;
+    return t_high + (0xFFFF - t_curr);
 }
 
 void kmain(uint magic, uint addr) @nogc nothrow
@@ -276,18 +294,37 @@ void kmain(uint magic, uint addr) @nogc nothrow
     while (kPortReadByte(PS2_STATUS_PORT) & 0x02) {}
     kPortWriteByte(PS2_DATA_PORT, PS2_ENABLE_MOUSE);
     
+    uint time1 = pitTimeTicks();
+    uint renderTimer = 0;
+    uint mouseTimer = 0;
+    
     while(1)
     {
-        for (int i = 0; i < 3; i++)
-            pollMouse();
+        uint time2 = pitTimeTicks();
+        uint delta = time2 - time1;
+        time1 = time2;
+        uint deltaMs = (delta * 1000000) / PIT_FREQUENCY; // microseconds
+        renderTimer += deltaMs;
+        mouseTimer += deltaMs;
         
-        fillScreen(&backBuffer, 0x000000AA);
-        drawBitmap(&backBuffer, 16, 16, DIOS_LOGO, DIOS_LOGO_WIDTH, DIOS_LOGO_HEIGHT);
-        drawBitmap(&backBuffer, mouseState.x, mouseState.y, CURSOR, CURSOR_WIDTH, CURSOR_HEIGHT);
-        
-        for (uint i = 0; i < numPixels; i++)
+        if (mouseTimer >= 1000) // 1 millisec
         {
-            frontBuffer.ptr[i] = backBuffer.ptr[i];
+            pollMouse();
+            mouseTimer = 0;
+        }
+        
+        if (renderTimer >= 16666) // 16.7 millisecs
+        {
+            // Render
+            fillScreen(&backBuffer, 0x000000AA);
+            drawBitmap(&backBuffer, 16, 16, DIOS_LOGO, DIOS_LOGO_WIDTH, DIOS_LOGO_HEIGHT);
+            drawBitmap(&backBuffer, mouseState.x, mouseState.y, CURSOR, CURSOR_WIDTH, CURSOR_HEIGHT);
+            
+            for (uint i = 0; i < numPixels; i++)
+            {
+                frontBuffer.ptr[i] = backBuffer.ptr[i];
+            }
+            renderTimer = 0;
         }
         
         /*
@@ -309,4 +346,3 @@ void kmain(uint magic, uint addr) @nogc nothrow
         */
     }
 }
-
